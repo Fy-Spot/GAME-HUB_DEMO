@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+
+	<title>this is a html canvas practice project</title>
+	<style>
+		* {
+			margin: 0;
+			height :100%;
+		}
+
+		#gamescreen {
+			width: 100%;
+			height: 100%;
+		}
+	</style>
+
+</head>
+
+<body>
+	<!-- <?php 
+		include('cors_handler.php') 
+	?> -->
+		
+	
+	<canvas id="gamescreen" width="1364" height='651.75'></canvas>
+	<script src="https://unpkg.com/three@0.87.1/build/three.js"></script>
+	<script src="https://unpkg.com/@plant/plant@2.4.0/dist/plant.js"></script>
+	<script src="https://unpkg.com/three@0.87.1/examples/js/loaders/GLTFLoader.js"></script>
+	<script src="https://unpkg.com/three@0.87.1/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.js"></script>
+	<!-- <script src="https://cdn.jsdelivr.net/npm/cannon-es-debugger@1.0.0/+esm" type="module"></script> -->
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script> -->
+
+	<script >
+		// import * as THREE from 'https://unpkg.com/three@0.87.1/build/three.js'
+		// import { OrbitControls } from 'https://unpkg.com/three@0.87.1/examples/js/controls/OrbitControls.js'
+		// import { GLTFLoader } from 'https://unpkg.com/three@0.87.1/examples/js/loaders/GLTFLoader.js'
+		//import CannonDebugger from 'https://cdn.jsdelivr.net/npm/cannon-es-debugger@1.0.0/+esm'
+		//import Stats from 'three/examples/jsm/libs/stats.module'
+		'use strict'
+		/* global THREE */
+
+		// const express = include('express')
+		// const cors = include('cors')
+		
+		
+
+		var renderCalls = [];
+		// function render() {
+		// 	requestAnimationFrame(render);
+		// 	renderCalls.forEach((callback) => { callback(); });
+		// }
+		// render();
+		const canvas = document.querySelector('#gamescreen');
+		const renderer = new THREE.WebGLRenderer({ canvas });
+
+		const fov = 100;
+		const aspect = 2;  // the canvas default
+		const near = 0.1;
+		const far = 50;
+		const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+		camera.position.z = 3;
+
+
+		const scene = new THREE.Scene();
+		const world = new CANNON.World()
+
+		world.gravity.set(0, -9.8, 0)
+		// world.broadphase = new CANNON.NaiveBroadphase()
+		// world.solver.iterations = 40
+  		
+
+		function resizeRendererToDisplaySize(renderer) {
+			const canvas = renderer.domElement;
+			const width = canvas.clientWidth;
+			const height = canvas.clientHeight;
+			const needResize = canvas.width !== width || canvas.height !== height;
+			if (needResize) {
+				renderer.setSize(width, height, false);
+			}
+			return needResize;
+		}
+
+		// const cannonDebugger = new CannonDebugger(scene, world, {
+  		// 	// options...
+		// })
+
+		class bruh{
+			constructor(a,b,c,d,e){
+				return a
+			}
+			drwa(){
+				console.log('my name is your name');
+			}
+		}
+
+		
+		class WorldGravityProperties{
+			constructor(
+				
+				acceleration = 0.75,
+				bounce_distance = 0,
+				bottom_position_y = -4,
+				time_step = 0.005
+				){
+					
+					//this.object = object
+					this.acceleration = acceleration
+					this.bounce_distance = bounce_distance
+					this.bottom_position_y = bottom_position_y
+					this.time_step = time_step
+					//this.isJumping = isJumping
+
+					this.time_counter = Math.sqrt(bounce_distance * 2 / acceleration);
+					this.initial_speed = acceleration * this.time_counter;
+				}
+
+			get world_acceleration(){return this.acceleration}
+			get world_bounce_distance(){return this.bounce_distance}
+			get world_bottom_position_y(){return this.bottom_position_y}
+			get world_time_step(){return this.time_step}
+			//get world_isJumping(){return this.isJumping}
+			
+			get world_time_counter(){return this.time_counter}
+			get world_initial_speed(){return this.initial_speed}
+
+			fall(object,bdist){
+				const{acceleration,bottom_position_y,time_step} = this
+				let {bounce_distance} = this
+				bounce_distance = bdist
+				
+				let timer_Down_id = setInterval(() => {
+					bounce_distance -= 0.2
+					bounce_distance = bounce_distance*acceleration
+					object.position.y =  bounce_distance
+					
+					if (bounce_distance < 0) {
+						clearInterval(timer_Down_id)
+						
+						//return isJumping
+					}
+				}, 20);
+				//isJumping = false
+				
+			}
+			
+		}
+
+		let World_Gravity_Properties = new WorldGravityProperties
+
+		class PlayerInstanceMesh{
+			constructor(rh,lh,rl,ll,hd,body = new THREE.Object3D(), playcam = new THREE.PerspectiveCamera(100,2,0.5,100)){
+				this.rh = rh
+				this.lh = lh
+				this.rl = rl
+				this.ll = ll
+				this.hd = hd
+				this.body = body
+				this.playcam = playcam
+			}
+
+			get playerbody(){return this.body}
+			get playerrh(){return this.rh}
+			get playerlh(){return this.lh}
+			get playerrl(){return thid.rl}
+			get playerll(){return this.ll}
+			get playerplaycam(){return this.playcam}
+
+
+			draw(){
+				
+				const{rh,lh,rl,ll,hd,body,playcam} = this
+
+				
+				const left_leg_pivot = new THREE.Object3D()
+				left_leg_pivot.position.set(-0.6,-1,0)
+
+				const right_leg_pivot = new THREE.Object3D()
+				right_leg_pivot.position.set(0.6,-1,0)
+
+				const left_hand_pivot = new THREE.Object3D()
+				left_hand_pivot.position.set(-0.6,0.2,0)
+				
+				const right_hand_pivot = new THREE.Object3D()
+				right_hand_pivot.position.set(0.6,0.2,0)
+
+				const playcampivot = new THREE.Object3D()
+
+				const left_leg_ph = new THREE.Object3D()
+				const right_leg_ph = new THREE.Object3D()
+				const left_hand_ph = new THREE.Object3D()
+				const right_hand_ph = new THREE.Object3D()
+				const playcam_ph = new THREE.Object3D()
+				const hdph = new THREE.Object3D()
+				
+				
+
+				right_hand_ph.position.set(0.8,-1,0)
+				left_hand_ph.position.set(-0.8,-1,0)
+				left_leg_ph.position.set(0,-0.8,0)
+				right_leg_ph.position.set(0,-0.8,0)
+				playcam_ph.position.z = -3
+				playcam_ph.rotation.y = Math.PI
+
+				left_hand_pivot.add(left_hand_ph)
+				left_leg_pivot.add(left_leg_ph)
+				right_hand_pivot.add(right_hand_ph)
+				right_leg_pivot.add(right_leg_ph)
+
+				hdph.add(hd)
+				body.add(hdph)
+				body.add(playcam_ph)
+				right_hand_ph.add(rh)
+				left_hand_ph.add(lh)
+				right_leg_ph.add(rl)
+				left_leg_ph.add(ll)
+				playcam_ph.add(playcam)
+
+				playcampivot.add(playcam_ph)
+
+				this.left_hand_pivot = left_hand_pivot
+				this.left_leg_pivot = left_leg_pivot
+				this.right_hand_pivot = right_hand_pivot
+				this.right_leg_pivot = right_leg_pivot
+				
+				//body.rotation.y = Math.PI
+				body.position.y = 5
+				
+
+				
+				scene.add(body)
+				
+				const pivots = [left_hand_pivot,left_leg_pivot,right_hand_pivot,right_leg_pivot,playcampivot]
+				pivots.forEach(element => {
+					body.add(element)
+				});
+				
+				function hover(time){
+					time*= 0.001
+					hed.position.y = Math.sin(time)/5
+					requestAnimationFrame(hover)
+				}
+
+				requestAnimationFrame(hover)
+			}
+			
+			
+
+			
+		}
+		class Playerhitbox{
+			constructor(mass = 5, structure = new CANNON.Sphere(1.5)){
+				this.hitboxshape = structure
+				this.mass = mass
+				this.hitbox = new CANNON.Body({shape:structure, mass:mass, material:'slipperyMaterial',  linearDamping: 0.5,angularDamping: 1.0,})
+			}
+			construct(){
+				const{hitboxshape,mass,hitbox} = this
+				world.addBody(hitbox)
+				
+			}
+
+			get hitboxShape(){return this.hitboxshape}
+			get Mass(){return this.mass}
+			get Hitbox(){return this.hitbox}
+		}
+		class PlayerInstance{
+			constructor(mesh = new PlayerInstanceMesh, hitbox = new Playerhitbox){
+				this.golemMesh = mesh
+				this.Golem = mesh.playerbody
+				this.hitbox = hitbox
+				this.hitboxbody = hitbox.Hitbox
+				this.rh=mesh.rh
+				this.lh = mesh.lh
+				this.rl = mesh.rl
+				this.ll = mesh.ll
+				this.left_hand_pivot =mesh.left_hand_pivot
+				this.right_hand_pivot = mesh.right_hand_pivot
+				this.left_leg_pivot = mesh.left_leg_pivot
+				this.right_leg_pivot =mesh.right_leg_pivot
+			}
+			drawMesh(){
+				const{golemMesh,Golem,hitbox} = this
+				golemMesh.draw()
+				hitbox.construct()
+			}
+
+			syncGolemHitbox(){
+				const{golemMesh,Golem,hitbox,hitboxbody} = this
+				Golem.position.copy(hitboxbody.position)
+
+			
+			}
+
+			set_onkey_controls(){
+				const{rh,lh,rl,ll,hd,body,left_hand_pivot,right_hand_pivot,right_leg_pivot,left_leg_pivot,playcam} = this
+				const{golemMesh,Golem,hitbox,hitboxbody} = this
+				
+				let cubeshape = new CANNON.Box( new CANNON.Vec3( 1, 1, 1 ) );
+				
+				let clock = new THREE.Clock();
+				let delta = clock.getDelta();
+				
+				let axisY =  new CANNON.Vec3( 0, 1, 0 );
+				let rotationQuaternion = new CANNON.Quaternion();
+				let rotateAngle = Math.PI / 3;
+				let angleY = 0
+
+				hitboxbody.addShape( cubeshape )
+				
+
+				let keyMap=[]
+				document.addEventListener('keydown',onGameKeydown,true)
+				document.addEventListener("keyup", onGameKeyup, true)
+				function onGameKeydown(event) {
+					let keycode = event.keyCode
+					keyMap[keycode] = true
+					//executeMovement()
+				}
+				function onGameKeyup(event) {
+					let keycode = event.keyCode
+					keyMap[keycode] = false
+					
+					//executeMovement()
+				}
+
+				let acceleration = World_Gravity_Properties.world_acceleration
+				let bottom_position_y = World_Gravity_Properties.world_bottom_position_y
+				let bounce_distance = World_Gravity_Properties.world_bounce_distance
+				let time_step = World_Gravity_Properties.world_time_step
+
+				let time_counter = World_Gravity_Properties.world_time_counter
+				let initial_speed = World_Gravity_Properties.world_initial_speed
+				let IsJumping = false
+				
+				function executeMovement() {
+					if(keyMap[37] === true){
+						//rotate left
+						angleY -= 0.002;
+						rotationQuaternion.setFromEuler(new CANNON.Vec3(0,1,0), angleY);
+						let quaternion = rotationQuaternion.mult(hitboxbody.quaternion);
+						quaternion.normalize();
+					}
+					if(keyMap[39] === true){
+						//rotate right
+						rotationQuaternion.setFromAxisAngle( axisY, -rotateAngle );
+        				hitboxbody.quaternion = rotationQuaternion.mult(hitboxbody.quaternion)
+					}
+					if(keyMap[38] === true){
+						//move front
+						function walk(time) {
+							time*=0.005
+							left_leg_pivot.rotation.x = (Math.sin(time))/2
+							right_hand_pivot.rotation.x = (Math.cos(90+time))/3
+							right_leg_pivot.rotation.x = (Math.cos(90+time))/3
+							left_hand_pivot.rotation.x = (Math.sin(time))/2
+							
+						}
+
+						hitboxbody.velocity.x += Math.sin(hitboxbody.quaternion.y)
+						hitboxbody.velocity.z += Math.cos(hitboxbody.quaternion.y)
+						
+						requestAnimationFrame(walk)
+							
+					}
+					if(keyMap[40] === true){
+						//move back
+						function walk2(time) {
+							time*=0.005
+							left_leg_pivot.rotation.x = (Math.sin(time))/2
+							right_hand_pivot.rotation.x = (Math.cos(90+time))/3
+							right_leg_pivot.rotation.x = (Math.cos(90+time))/3
+							left_hand_pivot.rotation.x = (Math.sin(time))/2
+						}
+						hitboxbody.velocity.x -= Math.sin(hitboxbody.quaternion.y)
+						hitboxbody.velocity.z -= Math.cos(hitboxbody.quaternion.y)
+						requestAnimationFrame(walk2)
+					}
+
+					if(keyMap[32] === true){
+						//let isJumping = World_Gravity_Properties.isJumping
+						const jump = () => {
+							
+							if (IsJumping) return{}
+							else{
+								if (hitboxbody.velocity.y <= 0.2 && hitboxbody.velocity.y >= 0)  {
+									IsJumping = false
+								}
+								let maxdist = 7.5
+								hitboxbody.velocity.y = maxdist
+								IsJumping = true
+
+								
+							}
+							
+							
+							
+						
+						};
+
+						jump()
+
+						
+						
+
+						// function animate() {
+						// 	requestAnimationFrame( jump );		
+						// }
+						// animate();
+						//body.position.y += 0.001
+						
+					}
+
+				
+				}
+
+				var update = function () {
+					requestAnimationFrame( update );
+
+					executeMovement()
+				};
+					update();
+			}
+		}
+
+		let headgeo = new THREE.SphereGeometry(1,64,32)
+		let headmat = new THREE.MeshPhongMaterial({emissive:0x00aeff})
+		let hed = new THREE.Mesh(headgeo, headmat)
+		
+		let leftleggeo = new THREE.ConeGeometry(0.5,0.75,4)
+		let leftlegmat = new THREE.MeshPhongMaterial({emissive:0x00aeff})
+		let leftleg = new THREE.Mesh(leftleggeo, leftlegmat)
+		leftleg.rotation.y = 22/28
+		
+		let rightleggeo = new THREE.ConeGeometry(0.5,0.75,4)
+		let rightlegmat = new THREE.MeshPhongMaterial({emissive:0x00aeff})
+		let rightleg = new THREE.Mesh(leftleggeo, leftlegmat)
+		rightleg.rotation.y = 22/28
+
+		let lefthandgoe = new THREE.SphereGeometry(0.25,64,64)
+		let lefthandmat = new THREE.MeshPhongMaterial({emissive:0x00aeff})
+		let lefthand = new THREE.Mesh(lefthandgoe, lefthandmat)
+		
+		let righthandgoe = new THREE.SphereGeometry(0.25,64,64)
+		let righthandmat = new THREE.MeshPhongMaterial({emissive:0x00aeff})
+		let righthand = new THREE.Mesh(righthandgoe,righthandmat)
+
+		const color = 0xFFFFFF;
+		const intensity = 0.5;
+		const light = new THREE.DirectionalLight(color, intensity);
+		light.position.set(-1, 2, 4);
+		scene.add(light);
+
+		let baseplate = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshBasicMaterial({wireframe: true, }))
+		let baseplateplane = new CANNON.Body({shape: new CANNON.Plane(), type: CANNON.Body.STATIC, material:'slipperyMaterial'})
+		baseplateplane.position.set(0, -10, 0)
+		baseplateplane.quaternion.setFromEuler(-Math.PI/2 ,0,0)
+		scene.add(baseplate)
+		world.addBody(baseplateplane)
+
+		let box = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),  new THREE.MeshBasicMaterial({wireframe: true, }))
+		let boxhitbox = new CANNON.Body({shape: new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5)), mass: 5})
+		boxhitbox.position.set(0,5,0)
+		scene.add(box)
+		world.addBody(boxhitbox)
+
+
+		
+		//let player = new Player(hed,righthand,lefthand,rightleg,leftleg,playercam,null,null)
+		let playermesh = new PlayerInstanceMesh(righthand,lefthand,rightleg,leftleg,hed)
+		let player = new PlayerInstance(playermesh, new Playerhitbox)
+		player.drawMesh()
+		player.set_onkey_controls()
+		//player.set_onkey_controls()
+
+		let selectedcam = playermesh.playerplaycam
+		//selectedcam.position.z = 3
+
+		//player.draw()
+		//player.set_onkey_controls()
+
+		function render(time) {
+			//correct graphics
+			const canvas = renderer.domElement;
+			selectedcam.aspect = canvas.clientWidth / canvas.clientHeight;
+			selectedcam.updateProjectionMatrix();
+
+			if (resizeRendererToDisplaySize(renderer)) {
+				const canvas = renderer.domElement; 
+				selectedcam.aspect = canvas.clientWidth / canvas.clientHeight;
+				selectedcam.updateProjectionMatrix();
+			}
+			
+			
+			time*=0.001
+			
+			//cannonDebugger.update()
+
+			requestAnimationFrame(render)
+			
+			world.step(1/60)
+			player.syncGolemHitbox()
+			baseplate.position.copy(baseplateplane.position)
+			baseplate.quaternion.copy(baseplateplane.quaternion)
+			box.position.copy(boxhitbox.position)
+			box.quaternion.copy(boxhitbox.quaternion)
+			renderer.render(scene, selectedcam);
+			
+		}
+		render();
+	
+
+		
+
+		
+
+		
+		
+
+
+
+	</script>
+</body>
+
+</html>
