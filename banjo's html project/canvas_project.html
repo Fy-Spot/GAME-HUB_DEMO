@@ -290,6 +290,7 @@
 			syncGolemHitbox(){
 				const{golemMesh,Golem,hitbox,hitboxbody} = this
 				Golem.position.copy(hitboxbody.position)
+				Golem.quaternion.copy(hitboxbody.quaternion)
 
 			
 			}
@@ -338,14 +339,12 @@
 				function executeMovement() {
 					if(keyMap[37] === true){
 						//rotate left
-						angleY -= 0.002;
-						rotationQuaternion.setFromEuler(new CANNON.Vec3(0,1,0), angleY);
-						let quaternion = rotationQuaternion.mult(hitboxbody.quaternion);
-						quaternion.normalize();
+						rotationQuaternion.setFromAxisAngle( axisY, rotateAngle/50 );
+        				hitboxbody.quaternion = rotationQuaternion.mult(hitboxbody.quaternion)
 					}
 					if(keyMap[39] === true){
 						//rotate right
-						rotationQuaternion.setFromAxisAngle( axisY, -rotateAngle );
+						rotationQuaternion.setFromAxisAngle( axisY, -rotateAngle/50 );
         				hitboxbody.quaternion = rotationQuaternion.mult(hitboxbody.quaternion)
 					}
 					if(keyMap[38] === true){
@@ -359,8 +358,8 @@
 							
 						}
 
-						hitboxbody.velocity.x += Math.sin(hitboxbody.quaternion.y)
-						hitboxbody.velocity.z += Math.cos(hitboxbody.quaternion.y)
+						hitboxbody.velocity.x = Math.sin(hitboxbody.quaternion.y)*5
+						hitboxbody.velocity.z = Math.cos(hitboxbody.quaternion.y)*5
 						
 						requestAnimationFrame(walk)
 							
@@ -374,8 +373,8 @@
 							right_leg_pivot.rotation.x = (Math.cos(90+time))/3
 							left_hand_pivot.rotation.x = (Math.sin(time))/2
 						}
-						hitboxbody.velocity.x -= Math.sin(hitboxbody.quaternion.y)
-						hitboxbody.velocity.z -= Math.cos(hitboxbody.quaternion.y)
+						hitboxbody.velocity.x = -Math.sin(hitboxbody.quaternion.y)*5
+						hitboxbody.velocity.z = -Math.cos(hitboxbody.quaternion.y)*5
 						requestAnimationFrame(walk2)
 					}
 
