@@ -164,8 +164,9 @@
 			get playerbody(){return this.body}
 			get playerrh(){return this.rh}
 			get playerlh(){return this.lh}
-			get playerrl(){return thid.rl}
+			get playerrl(){return this.rl}
 			get playerll(){return this.ll}
+			
 			get playerplaycam(){return this.playcam}
 
 
@@ -245,7 +246,10 @@
 
 				requestAnimationFrame(hover)
 			}
-			
+			get playerrhpivot(){return this.right_hand_pivot}
+			get playerlhpivot(){return this.left_hand_pivot}
+			get playerrlpivot(){return this.right_leg_pivot}
+			get playerllpivot(){return this.left_leg_pivot}
 			
 
 			
@@ -272,14 +276,14 @@
 				this.Golem = mesh.playerbody
 				this.hitbox = hitbox
 				this.hitboxbody = hitbox.Hitbox
-				this.rh=mesh.rh
-				this.lh = mesh.lh
-				this.rl = mesh.rl
-				this.ll = mesh.ll
-				this.left_hand_pivot =mesh.left_hand_pivot
-				this.right_hand_pivot = mesh.right_hand_pivot
-				this.left_leg_pivot = mesh.left_leg_pivot
-				this.right_leg_pivot =mesh.right_leg_pivot
+				this.rh=mesh.playerrh
+				this.lh = mesh.playerlh
+				this.rl = mesh.playerrl
+				this.ll = mesh.playerll
+				this.left_hand_pivot =mesh.playerlhpivot
+				this.right_hand_pivot = mesh.playerrhpivot
+				this.left_leg_pivot = mesh.playerllpivot
+				this.right_leg_pivot =mesh.playerrlpivot
 			}
 			drawMesh(){
 				const{golemMesh,Golem,hitbox} = this
@@ -308,6 +312,7 @@
 				let rotationQuaternion = new CANNON.Quaternion();
 				let rotateAngle = Math.PI / 3;
 				let angleY = 0
+				let worldVelocity 
 
 				hitboxbody.addShape( cubeshape )
 				
@@ -335,7 +340,28 @@
 				let time_counter = World_Gravity_Properties.world_time_counter
 				let initial_speed = World_Gravity_Properties.world_initial_speed
 				let IsJumping = false
-				
+
+				var contactNormal = new CANNON.Vec3();
+				var upAxis = new CANNON.Vec3( 0, 1, 0 );
+  				hitboxbody.addEventListener( "collide", function (e) {
+    
+   					var contact = e.contact;
+
+					if ( contact.bi.id == hitboxbody.id ) {
+						contact.ni.negate( contactNormal );
+					} // bi is the player body, flip the contact normal
+					else {
+						contactNormal.copy( contact.ni ); // bi is something else. Keep the normal as it is
+					}
+
+					if ( contactNormal.dot( upAxis ) > 0.5) {
+	
+					// Use a "good" threshold value between 0 and 1 here!
+					IsJumping = false;
+	
+					}
+    
+  				});
 				function executeMovement() {
 					if(keyMap[37] === true){
 						//rotate left
@@ -355,11 +381,11 @@
 							right_hand_pivot.rotation.x = (Math.cos(90+time))/3
 							right_leg_pivot.rotation.x = (Math.cos(90+time))/3
 							left_hand_pivot.rotation.x = (Math.sin(time))/2
-							
+							 
 						}
-
-						hitboxbody.velocity.x = Math.sin(hitboxbody.quaternion.y)*5
-						hitboxbody.velocity.z = Math.cos(hitboxbody.quaternion.y)*5
+						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,5) )
+						hitboxbody.velocity.x = worldVelocity.x
+						hitboxbody.velocity.z = worldVelocity.z
 						
 						requestAnimationFrame(walk)
 							
@@ -373,8 +399,9 @@
 							right_leg_pivot.rotation.x = (Math.cos(90+time))/3
 							left_hand_pivot.rotation.x = (Math.sin(time))/2
 						}
-						hitboxbody.velocity.x = -Math.sin(hitboxbody.quaternion.y)*5
-						hitboxbody.velocity.z = -Math.cos(hitboxbody.quaternion.y)*5
+						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,5) )
+						hitboxbody.velocity.x = -worldVelocity.x
+						hitboxbody.velocity.z = -worldVelocity.z
 						requestAnimationFrame(walk2)
 					}
 
@@ -384,9 +411,7 @@
 							
 							if (IsJumping) return{}
 							else{
-								if (hitboxbody.velocity.y <= 0.2 && hitboxbody.velocity.y >= 0)  {
-									IsJumping = false
-								}
+								
 								let maxdist = 7.5
 								hitboxbody.velocity.y = maxdist
 								IsJumping = true
@@ -499,7 +524,7 @@
 
 			requestAnimationFrame(render)
 			
-			world.step(1/60)
+			world.step(1/40)
 			player.syncGolemHitbox()
 			baseplate.position.copy(baseplateplane.position)
 			baseplate.quaternion.copy(baseplateplane.quaternion)
