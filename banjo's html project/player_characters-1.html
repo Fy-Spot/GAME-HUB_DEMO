@@ -33,7 +33,7 @@
 	<!-- <script src="https://cdn.jsdelivr.net/npm/cannon-es-debugger@1.0.0/+esm" type="module"></script> -->
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script> -->
 
-	<script >
+	<script>
 		// import * as THREE from 'https://unpkg.com/three@0.87.1/build/three.js'
 		// import { OrbitControls } from 'https://unpkg.com/three@0.87.1/examples/js/controls/OrbitControls.js'
 		// import { GLTFLoader } from 'https://unpkg.com/three@0.87.1/examples/js/loaders/GLTFLoader.js'
@@ -72,8 +72,8 @@
 		scene.background = new THREE.Color(0x97e2ff)
 
 		world.gravity.set(0, -9.8, 0)
-		// world.broadphase = new CANNON.NaiveBroadphase()
-		// world.solver.iterations = 40
+		world.broadphase = new CANNON.NaiveBroadphase()
+		world.solver.iterations = 40
   		
 
 		function resizeRendererToDisplaySize(renderer) {
@@ -90,15 +90,6 @@
 		// const cannonDebugger = new CannonDebugger(scene, world, {
   		// 	// options...
 		// })
-
-		class bruh{
-			constructor(a,b,c,d,e){
-				return a
-			}
-			drwa(){
-				console.log('my name is your name');
-			}
-		}
 
 		
 		class WorldGravityProperties{
@@ -154,15 +145,61 @@
 
 		let World_Gravity_Properties = new WorldGravityProperties
 
+		class PlayerCam{
+			constructor(params){
+				this.params =params
+				this.camera = params.camera
+                this.target = params.target
+
+				this.CurrentPos = new THREE.Vector3()
+				this.CurrentTarget = new THREE.Vector3()
+			}
+
+			CalculateIdealOffset(){
+                
+				const idealOffset = new THREE.Vector3(0,0,-3)
+				//console.log(idealOffset)
+				//console.log(this.params.target.rotation);
+				idealOffset.applyQuaternion(this.params.target.quaternion)
+				idealOffset.add(this.params.target.position)
+				//console.log(idealOffset)
+				return idealOffset
+			}
+
+			CalculateIdealTarget(){
+				const idealTarget = new THREE.Vector3(0,0,5)
+				idealTarget.applyQuaternion(this.params.target.quaternion)
+				idealTarget.add(this.params.target.position)
+				return idealTarget
+			}
+
+			Update(timeElapsed){
+				
+				const idealOffset = this.CalculateIdealOffset()
+				const idealTarget = this.CalculateIdealTarget()
+
+				//let t = 1 - Math.pow(0.001, timeElapsed)
+				let t = 0.35
+
+				//console.log(idealOffset,idealTarget);
+
+				this.CurrentPos.lerp(idealOffset, t)
+				this.CurrentTarget.lerp(idealTarget, t)
+
+				this.camera.position.copy(this.CurrentPos)
+				this.camera.lookAt(this.CurrentTarget)
+			}
+		}
+
 		class PlayerInstanceMesh{
-			constructor(rh,lh,rl,ll,hd,body = new THREE.Object3D(), playcam = new THREE.PerspectiveCamera(100,2,0.5,100), left_hand_pivot = new THREE.Object3D(),right_hand_pivot = new THREE.Object3D(),left_leg_pivot = new THREE.Object3D(),right_leg_pivot = new THREE.Object3D(), playcampivot = new THREE.Object3D()){
+			constructor(rh,lh,rl,ll,hd,body = new THREE.Object3D(), playcam = new THREE.PerspectiveCamera(100,2,0.5,150), left_hand_pivot = new THREE.Object3D(),right_hand_pivot = new THREE.Object3D(),left_leg_pivot = new THREE.Object3D(),right_leg_pivot = new THREE.Object3D(), playcampivot = new THREE.Object3D()){
 				this.rh = rh
 				this.lh = lh
 				this.rl = rl
 				this.ll = ll
 				this.hd = hd
 				this.body = body
-				this.playcam = playcam
+				//this.playcam = playcam
 				this.left_hand_pivot = left_hand_pivot
 				this.left_leg_pivot = left_leg_pivot
 				this.right_hand_pivot = right_hand_pivot
@@ -177,12 +214,12 @@
 			get playerrl(){return this.rl}
 			get playerll(){return this.ll}
 			
-			get playerplaycam(){return this.playcam}
+			//get playerplaycam(){return this.playcam}
 
 
 			draw(){
 				
-				const{rh,lh,rl,ll,hd,body,playcam} = this
+				const{rh,lh,rl,ll,hd,body} = this
 				let{left_leg_pivot,right_leg_pivot,left_hand_pivot,right_hand_pivot,playcampivot} = this
 
 				
@@ -197,7 +234,7 @@
 				const right_leg_ph = new THREE.Object3D()
 				const left_hand_ph = new THREE.Object3D()
 				const right_hand_ph = new THREE.Object3D()
-				const playcam_ph = new THREE.Object3D()
+				//const playcam_ph = new THREE.Object3D()
 				const hdph = new THREE.Object3D()
 				
 				
@@ -206,8 +243,8 @@
 				left_hand_ph.position.set(-0.8,-1,0)
 				left_leg_ph.position.set(0,-0.8,0)
 				right_leg_ph.position.set(0,-0.8,0)
-				playcam_ph.position.z = -3
-				playcam_ph.rotation.y = Math.PI
+				// playcam_ph.position.z = -3
+				// playcam_ph.rotation.y = Math.PI
 
 				left_hand_pivot.add(left_hand_ph)
 				left_leg_pivot.add(left_leg_ph)
@@ -216,14 +253,14 @@
 
 				hdph.add(hd)
 				body.add(hdph)
-				body.add(playcam_ph)
+				//body.add(playcam_ph)
 				right_hand_ph.add(rh)
 				left_hand_ph.add(lh)
 				right_leg_ph.add(rl)
 				left_leg_ph.add(ll)
-				playcam_ph.add(playcam)
+				// playcam_ph.add(playcam)
 
-				playcampivot.add(playcam_ph)
+				// playcampivot.add(playcam_ph)
 
 				
 				
@@ -251,12 +288,12 @@
 			get playerlhpivot(){return this.left_hand_pivot}
 			get playerrlpivot(){return this.right_leg_pivot}
 			get playerllpivot(){return this.left_leg_pivot}
-			
+			get player_playcampivot(){ return this.playcampivot}
 
 			
 		}
 		class Playerhitbox{
-			constructor(mass = 5, structure = new CANNON.Sphere(1.5)){
+			constructor(mass = 5, structure = new CANNON.Sphere(2.25)){
 				this.hitboxshape = structure
 				this.mass = mass
 				this.hitbox = new CANNON.Body({shape:structure, mass:mass, material:'slipperyMaterial',  linearDamping: 0.5,angularDamping: 1.0,})
@@ -283,18 +320,18 @@
 				const{DisplayName,font_name,style,fillcolor,label} = this
 
 				const ctx = document.createElement('canvas').getContext('2d')
-				ctx.font = '30px bold ${font_name}'
+				
 				
 				const borderSize = 2
 				const doubleBorderSize = borderSize * 2
 
 				const width = ctx.measureText(DisplayName).width + doubleBorderSize
-				const height = 30+doubleBorderSize
+				const height = 30 + doubleBorderSize
 
 				ctx.canvas.width = width;
   				ctx.canvas.height = height;
 
-				ctx.font = '30px bold ${font_name}'
+				ctx.font = `12.5px bold ${font_name}`
 				ctx.textBaseline = 'top'
 
 				
@@ -319,8 +356,9 @@
 			get PlayerNameTag(){ return this.label}
 		}
 		class PlayerInstance{
-			constructor(mesh = new PlayerInstanceMesh, hitbox = new Playerhitbox, nameTag = new PlayerNameTag){
+			constructor(mesh = new PlayerInstanceMesh, hitbox = new Playerhitbox, nameTag = new PlayerNameTag, health = 100){
 				this.golemMesh = mesh
+				this.health = health
 				this.Golem = mesh.playerbody
 				this.hitbox = hitbox
 				this.hitboxbody = hitbox.Hitbox
@@ -328,23 +366,47 @@
 				this.lh = mesh.playerlh
 				this.rl = mesh.playerrl
 				this.ll = mesh.playerll
-				this.playcam = mesh.playerplaycam
+				//this.playcam = mesh.playerplaycam
 				this.left_hand_pivot =mesh.playerlhpivot
 				this.right_hand_pivot = mesh.playerrhpivot
 				this.left_leg_pivot = mesh.playerllpivot
 				this.right_leg_pivot =mesh.playerrlpivot
-				this.playcampivot = mesh.playcampivot
+				//this.playcampivot = mesh.player_playcampivot
 				this.label = nameTag.label
 				this.nameTag = nameTag
+				this.enableHealing = true
 			}
 
-			get player_playcampivot(){ return this.playcampivot}
+			
 			drawMesh(){
 				const{golemMesh,Golem,hitbox,label,nameTag} = this
 				golemMesh.draw()
 				hitbox.construct()
 				nameTag.createLabel()
 				Golem.add(label)
+			}
+
+			autoheal(){
+				let {health,enableHealing} = this
+				setInterval(() => {
+					if(!enableHealing) return
+					if(this.health<100){
+						this.health += 1
+						//console.log(this.health);
+					}
+				}, 1000);
+			}
+
+			play_death_animation(animation){
+				if(typeof(animation) === 'function'){
+					let play_fun = animation
+					//console.log(play_fun)
+					play_fun()
+				}
+
+				else{
+					console.warn('Not a valid function or animation');
+				}
 			}
 
 			syncGolemHitbox(){
@@ -356,7 +418,7 @@
 			}
 
 			set_onkey_controls(){
-				const{rh,lh,rl,ll,hd,body,left_hand_pivot,right_hand_pivot,right_leg_pivot,left_leg_pivot,playcam} = this
+				const{rh,lh,rl,ll,hd,body,left_hand_pivot,right_hand_pivot,right_leg_pivot,left_leg_pivot,playcam,playcampivot} = this
 				const{golemMesh,Golem,hitbox,hitboxbody} = this
 				
 				let cubeshape = new CANNON.Box( new CANNON.Vec3( 1, 1, 1 ) );
@@ -371,12 +433,14 @@
 				let worldVelocity 
 
 				hitboxbody.addShape( cubeshape )
+
+                
 				
 
 				let keyMap=[]
 				document.addEventListener('keydown',onGameKeydown,true)
 				document.addEventListener("keyup", onGameKeyup, true)
-				
+               
 				function onGameKeydown(event) {
 					let keycode = event.keyCode
 					keyMap[keycode] = true
@@ -442,7 +506,7 @@
 							left_hand_pivot.rotation.x = (Math.sin(time))/2
 							 
 						}
-						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,5) )
+						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,12) )
 						hitboxbody.velocity.x = worldVelocity.x
 						hitboxbody.velocity.z = worldVelocity.z
 						
@@ -495,18 +559,6 @@
 						//body.position.y += 0.001
 						
 					}
-
-					if(keyMap[73] === true){
-						if(playcam.position.z > -1.875){
-							playcam.position.z -=0.1
-						} 
-					}
-
-					if(keyMap[79] === true){
-						if(playcam.position.z < 10){
-							playcam.position.z +=0.1
-						} 
-					}
 				
 				}
 
@@ -520,7 +572,7 @@
 		}
 
 		let headgeo = new THREE.SphereGeometry(1,64,32)
-		let headmat = new THREE.MeshStandardMaterial({emissive:0x00aeff})
+		let headmat = new THREE.MeshStandardMaterial({emissive:0x00aeff,color:0x00aeff})
 		let hed = new THREE.Mesh(headgeo, headmat)
 		
 		let leftleggeo = new THREE.ConeGeometry(0.5,0.75,4)
@@ -547,18 +599,24 @@
 		light.position.set(-1, 2, 4);
 		scene.add(light);
 
-		let baseplate = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshBasicMaterial({wireframe: true, }))
+		let baseplate = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshToonMaterial({color:0xc3c3c3 }))
 		let baseplateplane = new CANNON.Body({shape: new CANNON.Plane(), type: CANNON.Body.STATIC, material:'slipperyMaterial'})
 		baseplateplane.position.set(0, -10, 0)
 		baseplateplane.quaternion.setFromEuler(-Math.PI/2 ,0,0)
 		scene.add(baseplate)
 		world.addBody(baseplateplane)
 
-		let box = new THREE.Mesh(new THREE.BoxGeometry(2,2,2),  new THREE.MeshNormalMaterial())
-		let boxhitbox = new CANNON.Body({shape: new CANNON.Box(new CANNON.Vec3(1,1,1)), mass: 10})
-		boxhitbox.position.set(0,5,0)
+		let box = new THREE.Mesh(new THREE.BoxGeometry(5,5,5),  new THREE.MeshNormalMaterial({transparent:true, opacity:0.5}))
+		let boxhitbox = new CANNON.Body({shape: new CANNON.Box(new CANNON.Vec3(2.5,2.5,2.5)), mass: 50})
+		boxhitbox.position.set(7,5,0)
 		scene.add(box)
 		world.addBody(boxhitbox)
+
+		let ball = new THREE.Mesh(new THREE.SphereGeometry(0.75,32,32),  new THREE.MeshNormalMaterial())
+		let ballhitbox = new CANNON.Body({shape: new CANNON.Sphere(0.75), mass: 20})
+		ballhitbox.position.set(-2,7,0)
+		scene.add(ball)
+		world.addBody(ballhitbox)
 
 
 		
@@ -567,9 +625,13 @@
 		let player = new PlayerInstance(playermesh, new Playerhitbox, new PlayerNameTag("Spot", "Lucida Console"))
 		player.drawMesh()
 		player.set_onkey_controls()
-		//player.set_onkey_controls()
+		player.autoheal()
 
-		let selectedcam = playermesh.playerplaycam
+
+        let selectedcam = new THREE.PerspectiveCamera(100,2,0.5,150)
+
+        let thirdpersoncam = new PlayerCam({camera:selectedcam, target:player.Golem})
+		//player.set_onkey_controls()
 
 		//const controls = new THREE.OrbitControls( player.player_playcampivot, renderer.domElement );
 
@@ -581,6 +643,65 @@
 		// controls.update()
 
   		
+		let _playerDeathAnimations = {
+			cubify:() =>{
+				let cubes = []
+				let cubespos =[]
+				let playerlastpos = new THREE.Object3D()
+				playerlastpos.position.copy(player.Golem.position)
+				playerlastpos.rotation.copy(player.Golem.rotation)
+
+				scene.remove(player.Golem)
+				world.removeBody(player.hitboxbody)
+				
+				for (let i = 0; i < 50; i++) {
+					let size = Math.ceil(Math.random()*8)/10
+					//let poscf = Math.ceil(Math.random()*70)/100000
+					let pos = new THREE.Vector3((Math.ceil(Math.random()*120)-60)/1000, (Math.ceil(Math.random()*120)-60)/1000, (Math.ceil(Math.random()*120)-60)/1000)
+					//const element = array[i];
+					let cube = new THREE.BoxGeometry(size,size,size)
+					let cubemesh = new THREE.Mesh(cube, new THREE.MeshBasicMaterial({transparent:true,opacity:1,color:player.golemMesh.hd.material.color}))
+					//console.log(cubemesh);
+					cubemesh.position.copy(playerlastpos.position)
+					cubemesh.rotation.copy(playerlastpos.rotation)
+					scene.add(cubemesh)
+
+					cubes.push(cubemesh)
+					cubespos.push(pos)
+				}
+				//console.log(scene);
+				let num = 100
+				let playanimation = setInterval(() => {
+					
+					
+					for (let e = 0; e < cubes.length; e++) {
+						//const element = array[e];
+						cubes[e].position.add(cubespos[e])
+						cubes[e].material.opacity = num/100
+						//console.log(cubes[e].opacity)
+					}
+					//console.log(num/100);
+					num--
+
+					if (num<1) {
+						clearInterval(playanimation)
+						cubespos = []
+						cubes.forEach(element => {
+							scene.remove(element)
+						});
+						cubes = []
+					}
+				}, 2);
+
+				setTimeout(() => {
+					player.drawMesh()
+					player.hitboxbody.position = new CANNON.Vec3(0,5,0)
+					player.hitboxbody.quaternion = new CANNON.Quaternion()
+				}, 1000);
+
+
+			},
+		}
 
 		// controls.update()
 		//selectedcam.position.z = 3
@@ -601,18 +722,22 @@
 			}
 			
 			
-			time*=0.001
+			let timeS = time*0.001
 			
 			//cannonDebugger.update()
 
 			requestAnimationFrame(render)
 			
 			world.step(1/40)
+            thirdpersoncam.Update(timeS)
+			//selectedcam.lookAt(player.Golem.position)
 			player.syncGolemHitbox()
 			baseplate.position.copy(baseplateplane.position)
 			baseplate.quaternion.copy(baseplateplane.quaternion)
 			box.position.copy(boxhitbox.position)
 			box.quaternion.copy(boxhitbox.quaternion)
+			ball.position.copy(ballhitbox.position)
+			ball.quaternion.copy(ballhitbox.quaternion)
 			renderer.render(scene, selectedcam);
 
 			// controls.update()

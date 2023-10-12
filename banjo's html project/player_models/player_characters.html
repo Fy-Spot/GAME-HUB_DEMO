@@ -33,7 +33,7 @@
 	<!-- <script src="https://cdn.jsdelivr.net/npm/cannon-es-debugger@1.0.0/+esm" type="module"></script> -->
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script> -->
 
-	<script >
+	<script>
 		// import * as THREE from 'https://unpkg.com/three@0.87.1/build/three.js'
 		// import { OrbitControls } from 'https://unpkg.com/three@0.87.1/examples/js/controls/OrbitControls.js'
 		// import { GLTFLoader } from 'https://unpkg.com/three@0.87.1/examples/js/loaders/GLTFLoader.js'
@@ -91,15 +91,6 @@
   		// 	// options...
 		// })
 
-		class bruh{
-			constructor(a,b,c,d,e){
-				return a
-			}
-			drwa(){
-				console.log('my name is your name');
-			}
-		}
-
 		
 		class WorldGravityProperties{
 			constructor(
@@ -155,7 +146,7 @@
 		let World_Gravity_Properties = new WorldGravityProperties
 
 		class PlayerInstanceMesh{
-			constructor(rh,lh,rl,ll,hd,body = new THREE.Object3D(), playcam = new THREE.PerspectiveCamera(100,2,0.5,100), left_hand_pivot = new THREE.Object3D(),right_hand_pivot = new THREE.Object3D(),left_leg_pivot = new THREE.Object3D(),right_leg_pivot = new THREE.Object3D(), playcampivot = new THREE.Object3D()){
+			constructor(rh,lh,rl,ll,hd,body = new THREE.Object3D(), playcam = new THREE.PerspectiveCamera(100,2,0.5,150), left_hand_pivot = new THREE.Object3D(),right_hand_pivot = new THREE.Object3D(),left_leg_pivot = new THREE.Object3D(),right_leg_pivot = new THREE.Object3D(), playcampivot = new THREE.Object3D()){
 				this.rh = rh
 				this.lh = lh
 				this.rl = rl
@@ -251,12 +242,12 @@
 			get playerlhpivot(){return this.left_hand_pivot}
 			get playerrlpivot(){return this.right_leg_pivot}
 			get playerllpivot(){return this.left_leg_pivot}
-			
+			get player_playcampivot(){ return this.playcampivot}
 
 			
 		}
 		class Playerhitbox{
-			constructor(mass = 5, structure = new CANNON.Sphere(1.5)){
+			constructor(mass = 5, structure = new CANNON.Sphere(2.25)){
 				this.hitboxshape = structure
 				this.mass = mass
 				this.hitbox = new CANNON.Body({shape:structure, mass:mass, material:'slipperyMaterial',  linearDamping: 0.5,angularDamping: 1.0,})
@@ -283,18 +274,18 @@
 				const{DisplayName,font_name,style,fillcolor,label} = this
 
 				const ctx = document.createElement('canvas').getContext('2d')
-				ctx.font = '30px bold ${font_name}'
+				
 				
 				const borderSize = 2
 				const doubleBorderSize = borderSize * 2
 
 				const width = ctx.measureText(DisplayName).width + doubleBorderSize
-				const height = 30+doubleBorderSize
+				const height = 30 + doubleBorderSize
 
 				ctx.canvas.width = width;
   				ctx.canvas.height = height;
 
-				ctx.font = '30px bold ${font_name}'
+				ctx.font = `12.5px bold ${font_name}`
 				ctx.textBaseline = 'top'
 
 				
@@ -319,8 +310,9 @@
 			get PlayerNameTag(){ return this.label}
 		}
 		class PlayerInstance{
-			constructor(mesh = new PlayerInstanceMesh, hitbox = new Playerhitbox, nameTag = new PlayerNameTag){
+			constructor(mesh = new PlayerInstanceMesh, hitbox = new Playerhitbox, nameTag = new PlayerNameTag, health = 100){
 				this.golemMesh = mesh
+				this.health = health
 				this.Golem = mesh.playerbody
 				this.hitbox = hitbox
 				this.hitboxbody = hitbox.Hitbox
@@ -333,18 +325,34 @@
 				this.right_hand_pivot = mesh.playerrhpivot
 				this.left_leg_pivot = mesh.playerllpivot
 				this.right_leg_pivot =mesh.playerrlpivot
-				this.playcampivot = mesh.playcampivot
+				this.playcampivot = mesh.player_playcampivot
 				this.label = nameTag.label
 				this.nameTag = nameTag
+				this.enableHealing = true
 			}
 
-			get player_playcampivot(){ return this.playcampivot}
+			
 			drawMesh(){
 				const{golemMesh,Golem,hitbox,label,nameTag} = this
 				golemMesh.draw()
 				hitbox.construct()
 				nameTag.createLabel()
 				Golem.add(label)
+			}
+
+			autoheal(){
+				let {health,enableHealing} = this
+				setInterval(() => {
+					if(!enableHealing) return
+					if(this.health<100){
+						this.health += 1
+						//console.log(this.health);
+					}
+				}, 1000);
+			}
+
+			play_death_animation(animation){
+				animation
 			}
 
 			syncGolemHitbox(){
@@ -356,7 +364,7 @@
 			}
 
 			set_onkey_controls(){
-				const{rh,lh,rl,ll,hd,body,left_hand_pivot,right_hand_pivot,right_leg_pivot,left_leg_pivot,playcam} = this
+				const{rh,lh,rl,ll,hd,body,left_hand_pivot,right_hand_pivot,right_leg_pivot,left_leg_pivot,playcam,playcampivot} = this
 				const{golemMesh,Golem,hitbox,hitboxbody} = this
 				
 				let cubeshape = new CANNON.Box( new CANNON.Vec3( 1, 1, 1 ) );
@@ -371,12 +379,93 @@
 				let worldVelocity 
 
 				hitboxbody.addShape( cubeshape )
+
+                
 				
 
 				let keyMap=[]
 				document.addEventListener('keydown',onGameKeydown,true)
 				document.addEventListener("keyup", onGameKeyup, true)
-				
+                document.addEventListener("contextmenu", onRightClick,true)
+               
+				let mousedebounce = false
+                function onRightClick(event) {
+                    event.preventDefault()
+                    
+                   
+                    let index = 0
+
+                    document.addEventListener("pointerdown", ()=>{mousedebounce = false})
+                    document.addEventListener("pointerup", ()=>{mousedebounce=true})
+                
+                   
+                    let startxpos = event.clientX
+                    let startypos = event.clientY
+
+                    let mousexpos = [startxpos]
+                    let mouseypos = [startypos]
+                    console.log(startxpos)
+
+                    document.addEventListener('pointermove', mousedolly)
+                    function mousedolly(e) {
+                        let movementx
+                        let movementy
+                        
+                        mousexpos.push(e.clientX)
+                        mouseypos.push(e.clientY)
+
+                        if(mousedebounce) if (playcam.position.z> -1.875) {return}
+							
+						
+
+                        if (mousexpos[index]<mousexpos[index+1] ) {
+                            rotationQuaternion.setFromAxisAngle( axisY, -rotateAngle/50 );
+        					hitboxbody.quaternion = rotationQuaternion.mult(hitboxbody.quaternion)
+                        } else if(mousexpos[index]>mousexpos[index+1]){
+                            rotationQuaternion.setFromAxisAngle( axisY, rotateAngle/50 );
+        					hitboxbody.quaternion = rotationQuaternion.mult(hitboxbody.quaternion)
+                            //movement = -((canvas.clientWidth/2)-e.clientX)
+                        }else movementx = 0
+
+                        if (mouseypos[index]<mouseypos[index+1] ) {
+							if (playcampivot.rotation.x < Math.PI/2) {
+								movementy = 75
+							} else {
+								movementy = 0
+							}
+                            
+                        } else if(mouseypos[index]>mouseypos[index+1]){
+                            if (playcampivot.rotation.x > -Math.PI/2) {
+								movementy = -75
+							} else {
+								movementy = 0
+							}
+                            //movement = -((canvas.clientWidth/2)-e.clientX)
+                        }else movementy = 0
+                        
+                        
+                        //playcampivot.rotation.y += (-movementx)*0.0005
+                        playcampivot.rotation.x += (movementy)*0.00015
+						//playcam.rotation.y += (Math.cos(-movementx))*0.05
+						//playcam.rotation.z += (Math.sin(-movementx))*0.05
+                        //console.log(mousexpos[index],':', mousexpos[index+1])
+                         //console.log(mouseypos[index],':', mouseypos[index+1])
+                        index++
+                        
+                    }
+
+                    
+
+                    // document.addEventListener("pointerdown", mouseDolly)
+                    // function mouseDolly(event) {
+                    //     document.addEventListener("mousemove",(event)=>{playcampivot.rotation.y = (startxpos-event.clientX)*0.0075})
+                    // }
+
+                    // document.addEventListener("pointerup", mousedontDolly)
+                    // function mousedontDolly(event) {
+                    //     document.addEventListener("mousemove",(event)=>{return})
+                    // }
+                }
 				function onGameKeydown(event) {
 					let keycode = event.keyCode
 					keyMap[keycode] = true
@@ -442,7 +531,7 @@
 							left_hand_pivot.rotation.x = (Math.sin(time))/2
 							 
 						}
-						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,5) )
+						worldVelocity = hitboxbody.quaternion.vmult( new CANNON.Vec3(0,0,8) )
 						hitboxbody.velocity.x = worldVelocity.x
 						hitboxbody.velocity.z = worldVelocity.z
 						
@@ -520,7 +609,7 @@
 		}
 
 		let headgeo = new THREE.SphereGeometry(1,64,32)
-		let headmat = new THREE.MeshStandardMaterial({emissive:0x00aeff})
+		let headmat = new THREE.MeshStandardMaterial({emissive:0x00aeff,color:0x00aeff})
 		let hed = new THREE.Mesh(headgeo, headmat)
 		
 		let leftleggeo = new THREE.ConeGeometry(0.5,0.75,4)
@@ -547,18 +636,24 @@
 		light.position.set(-1, 2, 4);
 		scene.add(light);
 
-		let baseplate = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshBasicMaterial({wireframe: true, }))
+		let baseplate = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshToonMaterial({color:0xc3c3c3 }))
 		let baseplateplane = new CANNON.Body({shape: new CANNON.Plane(), type: CANNON.Body.STATIC, material:'slipperyMaterial'})
 		baseplateplane.position.set(0, -10, 0)
 		baseplateplane.quaternion.setFromEuler(-Math.PI/2 ,0,0)
 		scene.add(baseplate)
 		world.addBody(baseplateplane)
 
-		let box = new THREE.Mesh(new THREE.BoxGeometry(2,2,2),  new THREE.MeshNormalMaterial())
-		let boxhitbox = new CANNON.Body({shape: new CANNON.Box(new CANNON.Vec3(1,1,1)), mass: 10})
-		boxhitbox.position.set(0,5,0)
+		let box = new THREE.Mesh(new THREE.BoxGeometry(5,5,5),  new THREE.MeshNormalMaterial({transparent:true, opacity:0.5}))
+		let boxhitbox = new CANNON.Body({shape: new CANNON.Box(new CANNON.Vec3(2.5,2.5,2.5)), mass: 50})
+		boxhitbox.position.set(7,5,0)
 		scene.add(box)
 		world.addBody(boxhitbox)
+
+		let ball = new THREE.Mesh(new THREE.SphereGeometry(0.75,32,32),  new THREE.MeshNormalMaterial())
+		let ballhitbox = new CANNON.Body({shape: new CANNON.Sphere(0.75), mass: 20})
+		ballhitbox.position.set(-2,7,0)
+		scene.add(ball)
+		world.addBody(ballhitbox)
 
 
 		
@@ -613,6 +708,8 @@
 			baseplate.quaternion.copy(baseplateplane.quaternion)
 			box.position.copy(boxhitbox.position)
 			box.quaternion.copy(boxhitbox.quaternion)
+			ball.position.copy(ballhitbox.position)
+			ball.quaternion.copy(ballhitbox.quaternion)
 			renderer.render(scene, selectedcam);
 
 			// controls.update()

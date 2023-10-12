@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="myCanvas" width="300" height="150" style="border:1px solid grey"></canvas>
+    <canvas id="THREECanvas" width="500" height="300" style="border:1px solid grey"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.122.0/build/three.min.js"></script>
+    <script>
+    const c = document.getElementById("myCanvas");
+    const ctx = c.getContext("2d");
+    ctx.beginPath()
+    ctx.moveTo(150, 0);
+    ctx.lineTo(150,140)
+    ctx.beginPath();
+    ctx.moveTo(150, 30);
+    ctx.bezierCurveTo(120, 30, 90, 5, 85,30);
+    ctx.lineTo(73,110);
+    ctx.quadraticCurveTo(65, 140, 90, 140);
+    ctx.lineTo(150,140)
+    ctx.stroke();
+    ctx.closePath();
+
+    const canvas = document.querySelector('#THREECanvas')
+    const renderer = new THREE.WebGLRenderer({ canvas });
+    const scene = new THREE.Scene();
+
+
+
+    const fov = 60;
+    const aspect = 2;  // the canvas default
+    const near = 0.1;
+    const far = 50;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.position.z = -3;
+    //camera.position.y = 100
+
+    const points = [];
+    for ( let i = 0; i < 10; i ++ ) {
+	    points.push( new THREE.Vector2( Math.sin( i * 0.2 ) * 10 + 5, ( i - 5 ) * 2 ) );
+    }   
+    const geometry = new THREE.LatheGeometry( points );
+    const material = new THREE.MeshBasicMaterial( { color: 0xffff00 , side: THREE.DoubleSide()} );
+    const lathe = new THREE.Mesh( geometry, material );
+    scene.add( lathe );
+
+    function render(time) {
+        time *= 0.001;  // convert time to seconds
+ 
+        lathe.rotation.x = time;
+        lathe.rotation.y = time;
+ 
+        renderer.render(scene, camera);
+ 
+        requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+
+
+
+
+    
+
+    
+    renderer.render(scene, camera);
+
+
+    </script> 
+</body>
+</html>
